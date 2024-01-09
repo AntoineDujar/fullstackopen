@@ -1,56 +1,8 @@
 import { useState, useEffect } from "react";
-import axios from 'axios';
-
-const Filter = ({newSearch, handleSearchChange}) => {
-  return (
-    <div>
-        filter shown with:
-        <input value={newSearch} onChange={handleSearchChange} />
-    </div>
-  )
-}
-
-const PeopleForm = ({addPerson, newName, newNumber, handleNameChange, handleNumberChange}) => {
-  return (
-    <form onSubmit={addPerson}>
-        <div>
-          name: <input value={newName} onChange={handleNameChange} />
-        </div>
-        <div>
-          number: <input value={newNumber} onChange={handleNumberChange} />
-        </div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
-  )
-}
-
-const Person = ({id, name, number}) => {
-  return (
-    <li key={id}>
-      {name} {number}
-    </li>
-  )
-}
-
-const People = ({ persons, newSearch }) => {
-  // console.log(newSearch)
-  let filtered = persons.filter((person) => {
-    return (
-      newSearch.toLowerCase() ===
-      person.name.slice(0, newSearch.length).toLowerCase()
-    );
-  });
-
-  return (
-    <ul>
-      {filtered.map((person) =>
-        <Person key={person.id} id={person.id} name={person.name} number={person.number} />
-      )}
-    </ul>
-  );
-};
+import peopleService from './services/people'
+import People from './People'
+import PeopleForm from './PeopleForm'
+import Filter from './Filter'
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -59,12 +11,12 @@ const App = () => {
   const [newSearch, setNewSearch] = useState("");
 
   useEffect(() => {
-    console.log('effect')
-    axios
-      .get('http://localhost:3001/persons')
+    // console.log('effect')
+    peopleService
+      .getAll()
       .then(response => {
-        console.log('promise fulfulled')
-        setPersons(response.data)
+        // console.log('promise fulfulled')
+        setPersons(response)
       })
   }, [])
 
@@ -85,25 +37,52 @@ const App = () => {
     const personObject = {
       name: newName,
       number: newNumber,
-      id: persons.length + 1,
     };
-
+    let foundID = -1
     let present = persons.reduce((flag, person) => {
       if (person.name === personObject.name) {
         flag = true;
+        foundID = person.id
       }
       return flag;
     }, false);
     // console.log(present)
 
     if (!present) {
-      setPersons(persons.concat(personObject));
-      setNewName("");
-      setNewNumber("");
+      peopleService
+        .create(personObject)
+        .then(response => {
+          setPersons(persons.concat(response));
+          setNewName("");
+          setNewNumber("");
+        })
+        .catch(error => {
+          console.log('problem with post')
+        })
     } else {
-      alert(`${newName} is already added to phonebook`);
+        if (window.confirm(`${personObject.name} is already added to the phonebook, replace the old number?`)) {
+          // alert(`${newName} is already added to phonebook`);
+          // console.log(`foundID: ${foundID}`)
+          peopleService
+          .update(foundID, personObject)
+          .then(response => {
+            setPersons(persons.map(person => person.id !== foundID ? person : response))
+          })
+        }
     }
   };
+
+  const handleDelete = (id) => {
+    const currentPerson = persons.find(p => p.id === id)
+    if (window.confirm(`Do you want to delete ${currentPerson.name}?`)) {
+      peopleService
+        .deletePerson(id)
+        .then(response => {
+          // console.log(response)
+          setPersons(persons.filter(person => person.id !== id))
+        })
+    }
+  }
 
   return (
     <div>
@@ -118,7 +97,7 @@ const App = () => {
         handleNumberChange={handleNumberChange}
       />
       <h2>Numbers</h2>
-      <People persons={persons} newSearch={newSearch} />
+      <People persons={persons} newSearch={newSearch} handleDelete={handleDelete}/>
     </div>
   );
 };
