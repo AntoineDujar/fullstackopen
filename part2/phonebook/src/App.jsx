@@ -42,7 +42,7 @@ const Notification = ({ message }) => {
 }
 
 const App = () => {
-  const [persons, setPersons] = useState([]);
+  const [persons, setPersons] = useState(null);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newSearch, setNewSearch] = useState("");
@@ -136,6 +136,10 @@ const App = () => {
           setPersons(persons.filter(person => person.id !== id))
         })
     }
+  }
+
+  if (!persons) {
+    return null
   }
 
   return (
