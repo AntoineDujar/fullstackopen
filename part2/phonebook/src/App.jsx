@@ -4,13 +4,38 @@ import People from './People'
 import PeopleForm from './PeopleForm'
 import Filter from './Filter'
 
-const Notification = ({ message }) => {
+const ErrorMsg = ({ message }) => {
+
+  const notiStyle = {
+    color: 'red',
+    fontStyle: 'italic',
+    fontSize: 16
+  }
+
   if (message === null) {
     return null
   }
 
   return (
-    <div className='error'>
+    <div className='error' style={notiStyle}>
+      {message}
+    </div>
+  )
+}
+const Notification = ({ message }) => {
+
+  const notiStyle = {
+    color: 'green',
+    fontStyle: 'italic',
+    fontSize: 16
+  }
+
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div className='error' style={notiStyle}>
       {message}
     </div>
   )
@@ -22,6 +47,7 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [newSearch, setNewSearch] = useState("");
   const [notification, setNotification] = useState(null);
+  const [errormsg, setErrormsg] = useState(null);
 
   useEffect(() => {
     // console.log('effect')
@@ -82,12 +108,20 @@ const App = () => {
     } else {
         if (window.confirm(`${personObject.name} is already added to the phonebook, replace the old number?`)) {
           // alert(`${newName} is already added to phonebook`);
-          // console.log(`foundID: ${foundID}`)
+          console.log(`foundID: ${foundID}`)
           peopleService
-          .update(foundID, personObject)
-          .then(response => {
-            setPersons(persons.map(person => person.id !== foundID ? person : response))
-          })
+            .update(foundID, personObject)
+            .then(response => {
+              setPersons(persons.map(person => person.id !== foundID ? person : response))
+            })
+            .catch(response => {
+              setErrormsg(
+                `Note '${personObject.name}' has already been removed from the server`
+              )
+              setTimeout(() => {
+                setErrormsg(null)
+              }, 5000)
+            })
         }
     }
   };
@@ -107,6 +141,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <ErrorMsg message={errormsg} />
       <Notification message={notification} />
       <Filter newSearch={newSearch} handleSearchChange={handleSearchChange}/>
       <h2>add a new</h2>
